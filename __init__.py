@@ -1,1 +1,1 @@
-# This makes 'logic' a Python package
+# This makes 'utils' a Python package
