@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>📷 สแกน QR เพื่อส่งเข้า Google Form</title>
+  <script src="https://unpkg.com/html5-qrcode">
+    function toggleManualInput() {
+      const section = document.getElementById("manualModelSection");
+      section.style.display = (section.style.display === "none") ? "block" : "none";
+    }
+
+    function submitManualModel() {
+      const modelText = document.getElementById("manualModelInput").value.trim().toUpperCase();
+      if (!modelText) {
+        document.getElementById("message").innerText = "❌ กรุณากรอกชื่อ MODEL ก่อน";
+        return;
+      }
+
+      const mockQRData = "MODEL: " + modelText;
+      currentQrData = mockQRData;
+      latestModel = modelText;
+
+      if (!scannedModels.includes(modelText)) {
+        scannedModels.push(modelText);
+      }
+
+      document.getElementById("message").innerText = `📤 กรอก MODEL: ${modelText} แล้ว กรุณายืนยัน...`;
+      document.getElementById("confirmButtons").style.display = "block";
+    }
+
+
+</script>
+  <style>
+    body { font-family: sans-serif; text-align: center; background: #f9f9f9; }
+    #reader { width: 100%; max-width: 500px; margin: 20px auto; }
+    #message { margin-top: 15px; font-weight: bold; }
+    button { margin: 5px; padding: 10px 20px; font-size: 16px; }
+    table { margin: 20px auto; border-collapse: collapse; }
+    th, td { border: 1px solid #ccc; padding: 5px 10px; }
+    #aiFloatingBtn {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      width: 60px;
+      height: 60px;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      border-radius: 50%;
+      font-size: 24px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+      z-index: 1000;
+      cursor: pointer;
+      transition: background 0.3s ease;
+    }
+    #aiFloatingBtn:hover {
+      background-color: #0056b3;
+    }
+
+    #aiPopup {
+      position: fixed;
+      bottom: 90px;
+      right: 20px;
+      width: 320px;
+      background: #fff;
+      border: 1px solid #ccc;
+      box-shadow: 0 0 10px rgba(0,0,0,0.2);
+      border-radius: 8px;
+      z-index: 999;
+      display: none;
+      flex-direction: column;
+    }
+
+    #chatHeader {
+      cursor: pointer;
+      background: #007bff;
+      color: #fff;
+      padding: 8px;
+      border-radius: 8px 8px 0 0;
+    }
+    #chatBody {
+      max-height: 300px;
+      overflow-y: auto;
+      padding: 10px;
+      background: #fff;
+    }
+  </style>
+</head>
+<body>
+  <h2>📷 สแกน <b>QR</b> เพื่อส่งเข้า <b>Google Form</b></h2>
+  <button onclick="startScanner()">📷 หน้าสแกน QR</button>
+  <button onclick="toggleManualInput()" style="margin-top: 20px;">🔄 ใช้งานแบบกรอกชื่อ MODEL</button>
+  <button onclick="toggleDailyData()">📅 ข้อมูลวันนี้</button>
+  <button onclick="switchCamera()">🔄 สลับกล้อง</button>
+  <button onclick="checkFormNew()">🔁 เช็คฟอร์มใหม่</button>
+  <button id="aiFloatingBtn" onclick="toggleChatPopup()">💬</button>
+
+  <div id="manualModelSection" style="display: none; margin-top: 10px;">
+    <input type="text" id="manualModelInput" placeholder="เช่น HUSH-25" />
+    <button onclick="submitManualModel()">🚀 ส่งชื่อ MODEL</button>
+  </div>
+
+  <div id="confirmButtons" style="margin: 10px; display: none;">
+    <button onclick="sendFormConfirmed()">✅ ส่ง Google Form แล้ว</button>
+    <button onclick="sendFormCanceled()">❌ ยังไม่ส่ง Google Form</button>
+  </div>
+
+  <div id="aiPopup">
+    <div id="chatHeader" onclick="toggleChatBody()">💬 ถาม AI (คลิกเพื่อย่อ/ขยาย)</div>
+    <div id="chatBody"></div>
+    <div style="display: flex; border-top: 1px solid #ccc;">
+      <input type="text" id="chatInput" placeholder="พิมพ์คำถาม..." style="flex: 1; padding: 8px; border: none;" onkeydown="if(event.key === 'Enter') sendToAI();" />
+      <button onclick="sendToAI()" style="padding: 8px 12px;">📤</button>
+    </div>
+  </div>
+
+  <div id="reader" style="display:none;"></div>
+  <div id="message"></div>
+  <div id="sheetData" style="margin-top: 15px;"></div>
+
+  <script>
+    let currentFacing = "environment";
+    let html5Qr;
+    let currentQrData = "";
+    let latestModel = "";  // ✅ บันทึก MODEL ล่าสุด
+    let scannedModels = [];
+    let chatVisible = false;
+    let dailyDataVisible = false;
+    let scannerActive = false;
+
+    function toggleChatPopup() {
+      const popup = document.getElementById("aiPopup");
+      const isVisible = popup.style.display === "flex";
+      popup.style.display = isVisible ? "none" : "flex";
+    }
+
+    function toggleChatBody() {
+      const body = document.getElementById("chatBody");
+      body.style.display = (body.style.display === "none") ? "block" : "none";
+    }
+
+    function sendToAI() {
+      const input = document.getElementById("chatInput");
+      const chatBody = document.getElementById("chatBody");
+      const userMessage = input.value.trim();
+      if (!userMessage) return;
+
+      chatBody.innerHTML += `<div style="margin-bottom: 6px;"><b>คุณ:</b> ${userMessage}</div>`;
+      chatBody.scrollTop = chatBody.scrollHeight;
+      input.value = "";
+
+      fetch("/chat_ai", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ question: userMessage })
+      })
+      .then(res => res.json())
+      .then(data => {
+        const reply = data.message || "❌ ไม่พบคำตอบจาก AI";
+        chatBody.innerHTML += `<div style="margin-bottom: 10px;"><b>🤖 AI:</b> ${reply}</div>`;
+        chatBody.scrollTop = chatBody.scrollHeight;
+      })
+      .catch(err => {
+        chatBody.innerHTML += `<div style="color: red;">❌ ข้อผิดพลาด: ${err}</div>`;
+        chatBody.scrollTop = chatBody.scrollHeight;
+      });
+    }
+
+    function stopScanner() {
+      if (html5Qr) {
+        html5Qr.stop().then(() => {
+          html5Qr.clear();
+          html5Qr = null;
+          document.getElementById("reader").style.display = "none";
+        }).catch(err => {
+          console.warn("Error stopping QR scanner:", err);
+        });
+      }
+    }
+    
+    function checkFormNew() {
+      const currentModelText = document.getElementById("message").innerText;
+      const match = currentModelText.match(/MODEL:\s(.+?)\s+แล้ว/i);
+      const model = latestModel || (match ? match[1].trim().toUpperCase() : "");
+
+      // ✅ DEBUG
+      console.log("📤 [DEBUG] ข้อความในหน้า:", currentModelText);
+      console.log("📤 [DEBUG] Model ที่จะส่ง:", model);
+
+      if (!model) {
+        document.getElementById("message").innerText = "❌ ไม่พบ MODEL ที่สแกนไว้ล่าสุด";
+        return;
+      }
+
+      document.getElementById("message").innerText = "⏳ กำลังอัปเดตข้อมูล...";
+      fetch("/check_and_deduct_new_form_data", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ models: scannedModels })  // ✅ ส่งหลายตัว
+      })
+      .then(res => res.json())
+      .then(res => {
+        document.getElementById("message").innerText =
+          res.status === "success" ? "✅ " + res.message : "❌ " + res.message;
+          scannedModels = [];  // ✅ ล้างหลังอัปเดต
+      })
+      .catch(err => {
+        document.getElementById("message").innerText = "❌ เกิดข้อผิดพลาด: " + err;
+      });
+    }
+
+    function startScanner() {
+      const reader = document.getElementById("reader");
+      const sheetData = document.getElementById("sheetData");
+      const confirmButtons = document.getElementById("confirmButtons");
+      const message = document.getElementById("message");
+
+      if (scannerActive) {
+        // Stop scanner
+        if (html5Qr) {
+          html5Qr.stop().then(() => {
+            html5Qr.clear();
+            html5Qr = null;
+            scannerActive = false;
+            reader.style.display = "none";
+            message.innerText = "";
+          }).catch(err => {
+            console.warn("Error stopping QR scanner:", err);
+            message.innerText = "❌ ปิดกล้องไม่ได้: " + err;
+          });
+        }
+      } else {
+        // Start scanner
+        reader.style.display = "block";
+        if (sheetData) sheetData.style.display = "none";
+        if (confirmButtons) confirmButtons.style.display = "none";
+        if (message) message.innerText = "";
+
+        html5Qr = new Html5Qrcode("reader");
+        html5Qr.start(
+          { facingMode: currentFacing },
+          { fps: 10, qrbox: 250 },
+          qrMessage => {
+            console.log("QR Scanned:", qrMessage);
+            html5Qr.stop().then(() => {
+              html5Qr.clear();
+              html5Qr = null;
+              scannerActive = false;
+              sendToServer(qrMessage);
+            });
+          },
+          err => {}
+        ).then(() => {
+          scannerActive = true;
+        }).catch(err => {
+          message.innerText = "❌ กล้องใช้งานไม่ได้: " + err;
+        });
+      }
+    }
+
+    function switchCamera() {
+      if (html5Qr) {
+        html5Qr.stop()
+          .then(() => {
+            // สลับกล้อง
+            currentFacing = currentFacing === "user" ? "environment" : "user";
+
+            // ล้าง canvas
+            document.getElementById("reader").innerHTML = "";
+
+            // เริ่มใหม่
+            html5Qr = new Html5Qrcode("reader");
+            html5Qr.start(
+              { facingMode: currentFacing },
+              { fps: 10, qrbox: 250 },
+              qrMessage => {
+                console.log("QR Scanned:", qrMessage);
+                html5Qr.stop().then(() => {
+                  html5Qr.clear();
+                  html5Qr = null;
+                  scannerActive = false;
+                  sendToServer(qrMessage);
+                });
+              },
+              err => {}
+            ).then(() => {
+              scannerActive = true;
+            }).catch(err => {
+              document.getElementById("message").innerText = "❌ กล้องใช้งานไม่ได้: " + err;
+            });
+          })
+          .catch(err => {
+            document.getElementById("message").innerText = "❌ ไม่สามารถปิดกล้องเดิมได้: " + err;
+          });
+      }
+    }
+
+
+    function sendToServer(data) {
+      currentQrData = data;
+
+      let modelLine = data.split("\n").find(line => line.toLowerCase().includes("model"));
+      let modelText = "";
+      if (modelLine && modelLine.includes(":")) {
+        modelText = modelLine.split(":")[1].trim().toUpperCase();
+      }
+
+      if (modelText) {
+        latestModel = modelText;
+        if (!scannedModels.includes(modelText)) {
+          scannedModels.push(modelText);  // ✅ เพิ่ม model ใหม่เข้า list
+        }  // ✅ เก็บไว้ใช้ตอนเช็คฟอร์มใหม่
+        document.getElementById("message").innerText = `📤 ตรวจพบ MODEL: ${modelText} แล้ว กรุณายืนยัน...`;
+        document.getElementById("confirmButtons").style.display = "block";
+      } else {
+        document.getElementById("message").innerText = "❌ ไม่พบข้อมูล MODEL ใน QR ที่สแกน";
+        setTimeout(() => {
+          startScanner();
+        }, 3000);
+      }
+    }
+
+    function sendFormConfirmed() {
+      document.getElementById("confirmButtons").style.display = "none";
+      document.getElementById("message").innerText = "📤 กำลังส่งข้อมูล...";
+
+      fetch("/submit_qr", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ data: currentQrData, update_ae: true })
+      })
+      .then(res => res.json())
+      .then(res => {
+        if (res.status === "redirect") {
+          document.getElementById("message").innerText = "✅ กำลังเปิด Google Form...";
+          window.open(res.url, "_blank");
+          setTimeout(() => {
+            document.getElementById("message").innerText = "✅ ส่งเสร็จแล้ว พร้อมสแกนต่อ";
+            setTimeout(startScanner, 2500);
+          }, 3000);
+        } else if (res.status === "success") {
+          document.getElementById("message").innerText = "✅ " + res.message;
+          setTimeout(startScanner, 2500);
+        } else {
+          document.getElementById("message").innerText = "❌ " + res.message;
+        }
+      })
+      .catch(err => {
+        document.getElementById("message").innerText = "❌ ผิดพลาด: " + err;
+      });
+    }
+
+    function sendFormCanceled() {
+      document.getElementById("confirmButtons").style.display = "none";
+      document.getElementById("message").innerText = "❌ ยกเลิกการส่งฟอร์มแล้ว กำลังเริ่มการสแกนใหม่...";
+      setTimeout(() => {
+        startScanner();
+      }, 2000);
+    }
+
+    function loadTodaySheet() {
+      document.getElementById("reader").style.display = "none";
+      document.getElementById("sheetData").style.display = "block";
+      document.getElementById("confirmButtons").style.display = "none";
+
+      fetch("/get_sheet_data")
+        .then(res => res.json())
+        .then(response => {
+          const sheetData = response.data || [];
+
+          let html = `<h3>📅 ข้อมูลตรงกับวันที่วันนี้</h3>`;
+
+          if (sheetData.length > 0) {
+            html += "<table><thead><tr><th>Description</th><th>วันที่</th><th>จำนวนสุ่ม QA:</th><th>จำนวนที่ทำแล้ว</th></tr></thead><tbody>";
+            sheetData.forEach(row => {
+              html += `<tr>
+                <td>${row.description || "-"}</td>
+                <td>${row.date_value || "-"}</td>
+                <td>${row.value_prev_column || "-"}</td>
+                <td>${row.value_next_column || "-"}</td>
+              </tr>`;
+            });
+            html += "</tbody></table>";
+          } else {
+            html += "<p>❗ ไม่มีข้อมูลที่ตรงกับวันนี้</p>";
+          }
+
+          document.getElementById("sheetData").innerHTML = html;
+        })
+        .catch(err => {
+          document.getElementById("sheetData").innerText = "❌ ดึงข้อมูลไม่สำเร็จ: " + err;
+        });
+    }
+
+    function filterTable() {
+      const keyword = document.getElementById("searchBox").value.toLowerCase();
+      const rows = document.querySelectorAll("#sheetData table tbody tr");
+      rows.forEach(row => {
+        const text = row.innerText.toLowerCase();
+        row.style.display = text.includes(keyword) ? "" : "none";
+      });
+    }
+  
+    function toggleManualInput() {
+      const section = document.getElementById("manualModelSection");
+      section.style.display = (section.style.display === "none") ? "block" : "none";
+    }
+
+    function submitManualModel() {
+      const modelText = document.getElementById("manualModelInput").value.trim().toUpperCase();
+      if (!modelText) {
+        document.getElementById("message").innerText = "❌ กรุณากรอกชื่อ MODEL ก่อน";
+        return;
+      }
+
+      const mockQRData = "MODEL: " + modelText;
+      currentQrData = mockQRData;
+      latestModel = modelText;
+
+      if (!scannedModels.includes(modelText)) {
+        scannedModels.push(modelText);
+      }
+
+      document.getElementById("message").innerText = `📤 กรอก MODEL: ${modelText} แล้ว กรุณายืนยัน...`;
+      document.getElementById("confirmButtons").style.display = "block";
+    }
+
+    
+    function toggleDailyData() {
+      const sheetData = document.getElementById("sheetData");
+      if (!sheetData) return;
+
+      if (dailyDataVisible) {
+        sheetData.style.display = "none";
+        dailyDataVisible = false;
+      } else {
+        loadTodaySheet();
+        sheetData.style.display = "block";
+        dailyDataVisible = true;
+      }
+    }
+
+</script>
+</body>
+</html>
