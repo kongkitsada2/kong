@@ -1,14 +1,11 @@
 #แก้ google sheet ด้วย
 #เปลี่ยน entry.id ที่ได้จาก google form แบบกรอกฟอร์มล่วงหน้า
-import gspread
+import json, os
 from oauth2client.service_account import ServiceAccountCredentials
 
-scope = [
-    "https://spreadsheets.google.com/feeds",
-    "https://www.googleapis.com/auth/drive"
-]
-creds = ServiceAccountCredentials.from_json_keyfile_name("credentials.json", scope)
-client = gspread.authorize(creds)
+scope = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
+json_creds = json.loads(os.environ['GOOGLE_CREDENTIALS_JSON'])
+creds = ServiceAccountCredentials.from_json_keyfile_dict(json_creds, scope)
 
 def get_entry_mapping_by_form_url(form_url):
     if "Sf3ezCVJrYeW9txzxs1THloSflxCdm12_L19ghfru-9XQ4Mvg" in form_url:
