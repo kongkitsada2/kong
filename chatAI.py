@@ -1,4 +1,5 @@
 # logic/chat_ai.py
+import os
 import openai
 from flask import request, jsonify
 
@@ -45,7 +46,7 @@ system_prompt = """
 """
 
 client = openai.OpenAI(
-    api_key="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",
+    api_key=os.environ.get("OPENROUTER_API_KEY"),
     base_url="https://openrouter.ai/api/v1"
 )
 
