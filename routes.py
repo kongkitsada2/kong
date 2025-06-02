@@ -2,7 +2,6 @@ from flask import render_template, request, jsonify
 from logic.submit import submit_qr_logic
 from logic.check_deduct import check_and_deduct_logic
 from logic.get_sheet_data import get_sheet_data
-from logic.ocr import ocr_from_image
 from logic.chatAI import chat_ai_logic
 
 def register_routes(app):
@@ -21,10 +20,6 @@ def register_routes(app):
     @app.route('/check_and_deduct_new_form_data', methods=['POST'])
     def check_and_deduct():
         return check_and_deduct_logic()
-
-    @app.route('/upload_image_ocr', methods=['POST'])
-    def upload_image_ocr():
-        return ocr_from_image(request)
     
     @app.route('/chat_ai', methods=['POST'])
     def chat_ai():
