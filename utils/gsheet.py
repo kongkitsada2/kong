@@ -10,31 +10,31 @@ creds = ServiceAccountCredentials.from_json_keyfile_dict(json_creds, scope)
 client = gspread.authorize(creds)
 
 def get_entry_mapping_by_form_url(form_url):
-    if "Sf3ezCVJrYeW9txzxs1THloSflxCdm12_L19ghfru-9XQ4Mvg" in form_url:
+    if "1FAIpQLSeo1i3J97g_UgqpsSjPoWJy_nCqebzc1VxBBYAG1Rb_jiIuJQ" in form_url: #ปั๊มลมไร้น้ำมัน V.6
         return {
-            "วันที่": "entry.1479110611",
-            "ประเภทปั๊มลม": "entry.2058113853",
-            "ยี่ห้อปั๊มลม": "entry.713069193",
-            "MODEL": "entry.347733934",
-            "ประเภทมอเตอร์": "entry.2103516068",
-            "กำลังมอเตอร์": "entry.1794014403",
+            "วันที่": "entry.954074667",
+            "ประเภทปั๊มลม": "entry.1504861747",
+            "ยี่ห้อปั๊มลม": "entry.33255820",
+            "MODEL": "entry.357938739",
+            "ประเภทมอเตอร์": "entry.938378374",
+            "กำลังมอเตอร์": "entry.716381721",
         }
-    elif "1FAIpQLScHgJjqFkxZJ5K_TfinnzNGS9taeqlVAR4SnMWDBSoTwNmFVA" in form_url:
+    elif "1FAIpQLScWiPVLv6rcorryap4HyRZF9tPES7od-HiGWT9_MzAb3md4AA" in form_url: #ปั๊มลมลูกสูบ V.4
         return {
-            "วันที่": "entry.1616411344",
-            "ประเภทปั๊มลม": "entry.1661700905",
-            "ยี่ห้อปั๊มลม": "entry.615767597",
-            "MODEL": "entry.1573106649",
-            "ประเภทมอเตอร์": "entry.1547661818",
-            "กำลังมอเตอร์": "entry.431007909",
+            "วันที่": "entry.954074667",
+            "ประเภทปั๊มลม": "entry.1504861747",
+            "ยี่ห้อปั๊มลม": "entry.33255820",
+            "MODEL": "entry.357938739",
+            "ประเภทมอเตอร์": "entry.938378374",
+            "กำลังมอเตอร์": "entry.716381721",
         }
     else:
-        return {
-            "วันที่": "entry.1301553690",
-            "ประเภทปั๊มลม": "entry.1683658413",
-            "MODEL": "entry.1159901527",
-            "ยี่ห้อปั๊มลม": "entry.139507719",
-            "ประเภทมอเตอร์": "entry.1101246079",
-            "กำลังมอเตอร์": "entry.1774963468",
+        return { #ปั๊มลมโรตารี่ V.3
+            "วันที่": "entry.954074667",
+            "ประเภทปั๊มลม": "entry.1504861747",
+            "ยี่ห้อปั๊มลม": "entry.33255820",
+            "MODEL": "entry.357938739",
+            "ประเภทมอเตอร์": "entry.938378374",
+            "กำลังมอเตอร์": "entry.716381721",
         }
 
