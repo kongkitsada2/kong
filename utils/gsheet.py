@@ -10,7 +10,7 @@ creds = ServiceAccountCredentials.from_json_keyfile_dict(json_creds, scope)
 client = gspread.authorize(creds)
 
 def get_entry_mapping_by_form_url(form_url):
-    if "1FAIpQLSeo1i3J97g_UgqpsSjPoWJy_nCqebzc1VxBBYAG1Rb_jiIuJQ" in form_url: #ปั๊มลมไร้น้ำมัน V.6
+    if "1MolkOjNwwqc09wtdo-l-o3mBB5z3kb86nGe7a1eCdIc" in form_url: #ปั๊มลมไร้น้ำมัน V.6
         return {
             "วันที่": "entry.954074667",
             "ประเภทปั๊มลม": "entry.1504861747",
@@ -19,7 +19,7 @@ def get_entry_mapping_by_form_url(form_url):
             "ประเภทมอเตอร์": "entry.938378374",
             "กำลังมอเตอร์": "entry.716381721",
         }
-    elif "1FAIpQLScWiPVLv6rcorryap4HyRZF9tPES7od-HiGWT9_MzAb3md4AA" in form_url: #ปั๊มลมลูกสูบ V.4
+    elif "1U9GR1gg42X5B3I3inL6UNIS5wYh4kEz6LKxsUnh1yng" in form_url: #ปั๊มลมลูกสูบ V.4
         return {
             "วันที่": "entry.954074667",
             "ประเภทปั๊มลม": "entry.1504861747",
@@ -28,8 +28,8 @@ def get_entry_mapping_by_form_url(form_url):
             "ประเภทมอเตอร์": "entry.938378374",
             "กำลังมอเตอร์": "entry.716381721",
         }
-    else:
-        return { #ปั๊มลมโรตารี่ V.3
+    elif "1V--MTqozy5pfAImoIevYhgPL1e7BZQv9G0zYrO-Mq7c" in form_url: #ปั๊มลมโรตารี่ V.3
+        return { 
             "วันที่": "entry.954074667",
             "ประเภทปั๊มลม": "entry.1504861747",
             "ยี่ห้อปั๊มลม": "entry.33255820",
