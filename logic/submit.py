@@ -2,7 +2,7 @@ import re
 from datetime import datetime
 from flask import jsonify
 import openpyxl
-from utils.gsheet import client, get_entry_mapping_by_form_url
+from utils.gsheet import get_entry_mapping_by_form_url
 from urllib.parse import urlencode
 
 EXCEL_PATH = "ปั้มลม.xlsx"
