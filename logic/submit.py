@@ -62,6 +62,16 @@ def submit_qr_logic(request):
                 form_data[entry_id] = value.strip().upper() if header in ["MODEL", "ยี่ห้อปั๊มลม"] else value
 
         query_string = urlencode(form_data)
+
+        # 🔍 เพิ่มส่วนนี้
+        form_date = form_data.get(ENTRY_MAPPING["วันที่"])
+        today_str = datetime.now().strftime("%Y-%m-%d")
+
+        if form_date != today_str:
+            update_last_response_file_only(model_text)
+            return jsonify({"status": "info", "message": "ข้อมูลไม่ใช่ของวันนี้, อัปเดตเฉพาะไฟล์ .txt แล้ว"})
+
+        # 🔁 ถ้าใช่วันนี้ → redirect ไปกรอกฟอร์ม
         redirect_url = f"{form_url}?{query_string}"
         return jsonify({"status": "redirect", "url": redirect_url})
 
