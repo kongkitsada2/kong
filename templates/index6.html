@@ -98,6 +98,13 @@
   <div id="lastCountsData" style="display:none; margin-top: 10px;"></div>
   
   <button id="aiFloatingBtn" onclick="toggleChatPopup()">💬</button>
+  
+  <div id="ai-chat-box" style="border: 1px solid #aaa; padding: 1em; margin-top: 2em;">
+  <h3>💬 ถาม AI</h3>
+  <textarea id="user-question" placeholder="พิมพ์คำถาม..." rows="3" style="width: 100%;"></textarea><br>
+  <button id="send-question">📩 ส่งคำถาม</button>
+  <p id="ai-response" style="margin-top: 1em;"></p>
+</div>
 
   <div id="manualModelSection" style="display: none; margin-top: 10px;">
     <input type="text" id="manualModelInput" placeholder="เช่น HUSH-25" />
