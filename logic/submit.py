@@ -10,6 +10,11 @@ EXCEL_PATH = "ปั้มลม.xlsx"
 def normalize_model(text):
     return re.sub(r'[\s\-\(\)]', '', text.upper())
 
+def check_and_deduct_new_form_data():
+    models = get_all_models_from_last_response_file()
+    update_last_response_file_if_needed(models)
+    return {"status": "success", "message": "เช็คและอัปเดตข้อมูลล่าสุดแล้ว"}
+
 def submit_qr_logic(request):
     data = request.json
     qr_text = data.get("data", "").strip()
