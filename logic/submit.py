@@ -2,18 +2,13 @@ import re
 from datetime import datetime
 from flask import jsonify
 import openpyxl
-from utils.gsheet import get_entry_mapping_by_form_url
+from utils.gsheet import client, get_entry_mapping_by_form_url
 from urllib.parse import urlencode
 
 EXCEL_PATH = "ปั้มลม.xlsx"
 
 def normalize_model(text):
     return re.sub(r'[\s\-\(\)]', '', text.upper())
-
-def check_and_deduct_new_form_data():
-    models = get_all_models_from_last_response_file()
-    update_last_response_file_if_needed(models)
-    return {"status": "success", "message": "เช็คและอัปเดตข้อมูลล่าสุดแล้ว"}
 
 def submit_qr_logic(request):
     data = request.json
@@ -62,16 +57,6 @@ def submit_qr_logic(request):
                 form_data[entry_id] = value.strip().upper() if header in ["MODEL", "ยี่ห้อปั๊มลม"] else value
 
         query_string = urlencode(form_data)
-
-        # 🔍 เพิ่มส่วนนี้
-        form_date = form_data.get(ENTRY_MAPPING["วันที่"])
-        today_str = datetime.now().strftime("%Y-%m-%d")
-
-        if form_date != today_str:
-            update_last_response_file_only(model_text)
-            return jsonify({"status": "info", "message": "ข้อมูลไม่ใช่ของวันนี้, อัปเดตเฉพาะไฟล์ .txt แล้ว"})
-
-        # 🔁 ถ้าใช่วันนี้ → redirect ไปกรอกฟอร์ม
         redirect_url = f"{form_url}?{query_string}"
         return jsonify({"status": "redirect", "url": redirect_url})
 
