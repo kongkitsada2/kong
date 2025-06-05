@@ -196,10 +196,8 @@
       document.getElementById("message").innerText = "⏳ กำลังอัปเดตข้อมูล...";
       fetch("/check_and_deduct_new_form_data", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({ models: scannedModels })  // ✅ ส่งหลายตัว
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}) // ไม่มี model ก็ให้ backend ค้นหาเอง
       })
       .then(res => res.json())
       .then(res => {
