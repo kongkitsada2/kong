@@ -171,7 +171,7 @@
       body.style.display = (body.style.display === "none") ? "block" : "none";
     }
 
-    function sendToAI() {
+    async function sendToAI() {
       const input = document.getElementById("chatInput");
       const chatBody = document.getElementById("chatBody");
       const userMessage = input.value.trim();
