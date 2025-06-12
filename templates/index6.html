@@ -29,7 +29,6 @@
       document.getElementById("confirmButtons").style.display = "block";
     }
 
-
 </script>
   <style>
     body { font-family: sans-serif; text-align: center; background: #f9f9f9; }
@@ -181,21 +180,23 @@
       chatBody.scrollTop = chatBody.scrollHeight;
       input.value = "";
 
-      fetch("/chat_ai", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ question: userMessage })
-      })
-      .then(res => res.json())
-      .then(data => {
+      try {
+        const response = await fetch("/chat_ai", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({ question: userMessage })
+        });
+
+        const data = await response.json();
         const reply = data.message || "❌ ไม่พบคำตอบจาก AI";
         chatBody.innerHTML += `<div style="margin-bottom: 10px;"><b>🤖 AI:</b> ${reply}</div>`;
         chatBody.scrollTop = chatBody.scrollHeight;
-      })
-      .catch(err => {
-        chatBody.innerHTML += `<div style="color: red;">❌ ข้อผิดพลาด: ${err}</div>`;
+      } catch (err) {
+        chatBody.innerHTML += `<div style="color: red;">❌ เกิดข้อผิดพลาด: ${err.message}</div>`;
         chatBody.scrollTop = chatBody.scrollHeight;
-      });
+      }
     }
 
     function stopScanner() {
@@ -211,32 +212,23 @@
     }
     
     function checkFormNew() {
-      const currentModelText = document.getElementById("message").innerText;
-      const match = currentModelText.match(/MODEL:\s(.+?)\s+แล้ว/i);
-      const model = latestModel || (match ? match[1].trim().toUpperCase() : "");
-
-      // ✅ DEBUG
-      console.log("📤 [DEBUG] ข้อความในหน้า:", currentModelText);
-      console.log("📤 [DEBUG] Model ที่จะส่ง:", model);
-
-      if (!model) {
-        document.getElementById("message").innerText = "❌ ไม่พบ MODEL ที่สแกนไว้ล่าสุด";
-        return;
-      }
-
       document.getElementById("message").innerText = "⏳ กำลังอัปเดตข้อมูล...";
+
+      // ✅ หากไม่มี model → ส่ง body ว่างไปเลย
+      const bodyData = scannedModels.length > 0 ? { models: scannedModels } : {};
+
       fetch("/check_and_deduct_new_form_data", {
         method: "POST",
         headers: {
           "Content-Type": "application/json"
         },
-        body: JSON.stringify({ models: scannedModels })  // ✅ ส่งหลายตัว
+        body: JSON.stringify(bodyData)
       })
       .then(res => res.json())
       .then(res => {
         document.getElementById("message").innerText =
           res.status === "success" ? "✅ " + res.message : "❌ " + res.message;
-          scannedModels = [];  // ✅ ล้างหลังอัปเดต
+        scannedModels = [];  // ✅ ล้าง model หลังอัปเดต
       })
       .catch(err => {
         document.getElementById("message").innerText = "❌ เกิดข้อผิดพลาด: " + err;
@@ -328,7 +320,6 @@
           });
       }
     }
-
 
     function sendToServer(data) {
       currentQrData = data;
@@ -459,7 +450,6 @@
       document.getElementById("confirmButtons").style.display = "block";
     }
 
-    
     function toggleDailyData() {
       const sheetData = document.getElementById("sheetData");
       if (!sheetData) return;
