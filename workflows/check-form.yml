@@ -1,0 +1,18 @@
+name: Auto Check Form Every Night
+
+on:
+  schedule:
+    - cron: '0 17 * * *'  # เวลาไทย 00:00 (17:00 UTC)
+  workflow_dispatch:      # ✅ ให้กดรันเองด้วยถ้าต้องการ
+
+jobs:
+  check-form:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+
+    steps:
+      - name: Call API to check and deduct
+        run: |
+          curl -X POST https://qcproject.onrender.com/check_and_deduct_new_form_data \
+          -H "Content-Type: application/json" \
+          -d '{}'
