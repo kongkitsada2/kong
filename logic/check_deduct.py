@@ -19,9 +19,9 @@ def colname_to_index(colname):
 
 def check_and_deduct_logic():
     try:
-        sheet_url = "https://docs.google.com/spreadsheets/d/1bief199t8kf8vV9NoAUl_sakTTBTne5tKbXW8z65TcQ/edit"
+        sheet_url = "https://docs.google.com/spreadsheets/d/1n4hkPnfvFLEbEscD36yZWW_bssSk8mby5ehCKoBNDVM/edit"
         workbook = client.open_by_url(sheet_url)
-        main_sheet = workbook.worksheet("2025")
+        main_sheet = workbook.worksheet("ชีต1")
         response_sheets = ["ตอบกลับลูกสูบ", "ตอบกลับไร้น้ำมัน", "ตอบกลับโรตารี่"]
 
         # ดึง model จาก request
