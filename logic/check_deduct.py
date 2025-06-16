@@ -77,6 +77,13 @@ def check_and_deduct_logic():
                     model_clean = normalize_model(model_raw)
                     date_val = row[date_index].strip()
 
+                    # ✅ DEBUG LOG
+                    print("🧪 ตรวจพบข้อมูลใหม่:")
+                    print("   → MODEL raw:", model_raw)
+                    print("   → MODEL cleaned:", model_clean)
+                    print("   → วันที่ตรวจ:", date_val)
+                    print("   → เทียบกับ today_formats:", today_formats)
+
                     if (target_model_clean_set is None or model_clean in target_model_clean_set) and date_val in today_formats:
                         new_model_counts[model_clean] += 1
 
