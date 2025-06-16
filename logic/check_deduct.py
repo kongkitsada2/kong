@@ -26,11 +26,13 @@ def check_and_deduct_logic():
 
         # ดึง model จาก request
         req_data = request.get_json()
-        target_models = req_data.get("models", [])
-        if isinstance(target_models, str):
-            target_models = [target_models]  # เผื่อบางเคสยังส่งมาแบบ string เดี่ยว
-
-        target_model_clean_set = set(normalize_model(m.strip().upper()) for m in target_models)
+        target_models = req_data.get("models")
+        if target_models:
+            if isinstance(target_models, str):
+                target_models = [target_models]
+            target_model_clean_set = set(normalize_model(m.strip().upper()) for m in target_models)
+        else:
+            target_model_clean_set = None  # หมายถึงไม่กรองด้วย model
 
         tz = pytz.timezone("Asia/Bangkok")
         now = datetime.now(tz)
@@ -75,7 +77,7 @@ def check_and_deduct_logic():
                     model_clean = normalize_model(model_raw)
                     date_val = row[date_index].strip()
 
-                    if model_clean in target_model_clean_set and date_val in today_formats:
+                    if (target_model_clean_set is None or model_clean in target_model_clean_set) and date_val in today_formats:
                         new_model_counts[model_clean] += 1
 
             # บันทึก count ใหม่ไว้
