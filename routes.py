@@ -1,7 +1,7 @@
 from flask import render_template, request, jsonify
 from logic.submit import submit_qr_logic
 from logic.check_deduct import check_and_deduct_logic
-from logic.get_sheet_data import get_sheet_data
+from logic.get_sheet_data_column_N import get_sheet_data
 from logic.chatAI import chat_ai_logic
 from logic.last_count import read_last_response_counts
 
