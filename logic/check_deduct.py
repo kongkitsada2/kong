@@ -7,6 +7,16 @@ from flask import jsonify, request
 from collections import defaultdict
 from utils.gsheet import client
 
+def is_today_date(val, today_formats):
+    val = val.strip().split(" ")[0].strip()
+    for fmt in today_formats:
+        try:
+            if datetime.strptime(val, "%d/%m/%Y") == datetime.strptime(fmt, "%d/%m/%Y"):
+                return True
+        except:
+            continue
+    return False
+
 def normalize_model(text):
     return re.sub(r'[\s\-\(\)]', '', text.upper())
 
@@ -76,13 +86,9 @@ def check_and_deduct_logic():
                     model_raw = row[model_index].strip().upper()
                     model_clean = normalize_model(model_raw)
                     date_val = row[date_index].strip()
-
-                    # ✅ DEBUG LOG
-                    print("🧪 ตรวจพบข้อมูลใหม่:")
-                    print("   → MODEL raw:", model_raw)
-                    print("   → MODEL cleaned:", model_clean)
-                    print("   → วันที่ตรวจ:", date_val)
-                    print("   → เทียบกับ today_formats:", today_formats)
+                    
+                    # ✅ เพิ่มตรงนี้เพื่อตรวจสอบข้อมูลที่ได้จาก Google Form
+                    #print(f"✅ เช็คจากชีต {sheet_name}: วันที่ = {date_val}, model = {model_raw}")
 
                     if (target_model_clean_set is None or model_clean in target_model_clean_set) and date_val in today_formats:
                         new_model_counts[model_clean] += 1
@@ -101,12 +107,22 @@ def check_and_deduct_logic():
 
         for model_key, count in new_model_counts.items():
             matched_row_index = None
+            matched_date_col = None
             for i, row in enumerate(main_data[1:], start=2):
                 if len(row) > desc_col_index:
                     desc_clean = normalize_model(row[desc_col_index].strip())
                     if model_key in desc_clean:
-                        matched_row_index = i
-                        break
+                        # ตรวจสอบว่า row นี้มีวันที่ตรงกับวันนี้หรือไม่
+                        for col_idx in date_indexes:
+                            if len(row) > col_idx:
+                                val = row[col_idx].strip()
+                                print(f"🔍 ตรวจแถว {i}: {val!r}")
+                                if is_today_date(val, today_formats):
+                                    matched_row_index = i
+                                    matched_date_col = col_idx
+                                    break
+                if matched_row_index:
+                    break
 
             if not matched_row_index:
                 summary.append(f"{model_key}: ❌ ไม่พบ MODEL ในชีตหลัก")
@@ -117,7 +133,8 @@ def check_and_deduct_logic():
             for col_idx in date_indexes:
                 if len(matched_row) > col_idx:
                     val = matched_row[col_idx].strip()
-                    if val in today_formats:
+                    print(f"🔍 ตรวจแถว {i+1}: {val!r}")
+                    if is_today_date(val, today_formats):
                         matched_date_col = col_idx
                         break
 
@@ -139,6 +156,12 @@ def check_and_deduct_logic():
             summary.append("⛔ ไม่มีข้อมูลใหม่ที่ตรงกับวันนี้")
 
         return jsonify({"status": "success", "message": "\n".join(summary)})
+
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({"status": "error", "message": str(e)}), 500
+
 
     except Exception as e:
         import traceback
