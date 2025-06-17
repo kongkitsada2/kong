@@ -1,8 +1,5 @@
-#แก้ google sheet ด้วย
 from flask import jsonify
 from utils.gsheet import client
-from datetime import datetime
-import pytz
 import logging
 
 logging.basicConfig(level=logging.INFO)
@@ -27,53 +24,27 @@ def get_sheet_data():
         headers = values[0]
         rows = values[1:]
 
-        tz = pytz.timezone("Asia/Bangkok")
-        now = datetime.now(tz)
-        year = now.year - 543 if now.year > 2500 else now.year
-        d, m = now.day, now.month
-
-        today_formats = [
-            f"{d}/{m}/{year}",
-            f"{d:02d}/{m}/{year}",
-            f"{d}/{m:02d}/{year}",
-            f"{d:02d}/{m:02d}/{year}"
-        ]
-        '''
-        date_cols = ["O", "S", "W", "AA"]
-        date_col_indexes = [colname_to_index(c) for c in date_cols]
-        description_col = colname_to_index("B")'''
-        date_col_indexes = [colname_to_index("D")]  # วันที่
-        description_col = colname_to_index("I")     # Description (ใหม่)
-        qa_col = colname_to_index("L")              # จำนวนสุ่ม QA:
-        done_col = colname_to_index("M")            # จำนวนที่ทำแล้ว
+        # ✅ ตั้งค่าคอลัมน์ที่ต้องใช้
+        description_col = colname_to_index("I")  # Description
+        qa_col = colname_to_index("L")           # จำนวนสุ่ม QA:
+        done_col = colname_to_index("M")         # จำนวนที่ทำแล้ว
+        remain_col = colname_to_index("N")       # คงเหลือ
 
         matched_data = []
 
-        for row_idx, row in enumerate(rows, start=2):
-            for col_idx in date_col_indexes:
-                if len(row) > col_idx:
-                    cell_value = str(row[col_idx]).strip()
-                    if any(fmt in cell_value for fmt in today_formats):
-                        description = row[description_col] if len(row) > description_col else "-"
-                        prev_col_idx = col_idx - 1
-                        next_col_idx = col_idx + 1
+        for row in rows:
+            try:
+                remain_value = int(str(row[remain_col]).strip()) if len(row) > remain_col else 0
+            except:
+                remain_value = 0
 
-                        value_prev_column = row[prev_col_idx] if prev_col_idx >= 0 and len(row) > prev_col_idx else "-"
-                        value_next_column = row[next_col_idx] if next_col_idx < len(row) else "-"
-                        '''
-                        matched_data.append({
-                            "description": description,
-                            "date_value": cell_value,
-                            "value_prev_column": value_prev_column,  # จำนวนสุ่ม QA:
-                            "value_next_column": value_next_column    # คอลัมน์ถัดจากวันที่
-                        })'''
-                        matched_data.append({
-                            "description": row[description_col] if len(row) > description_col else "-",
-                            "date_value": cell_value,
-                            "value_prev_column": row[qa_col] if len(row) > qa_col else "-",
-                            "value_next_column": row[done_col] if len(row) > done_col else "-"
-                        })
-                        break
+            if remain_value > 0:
+                matched_data.append({
+                    "description": row[description_col] if len(row) > description_col else "-",
+                    "date_value": str(remain_value),
+                    "value_prev_column": row[qa_col] if len(row) > qa_col else "-",
+                    "value_next_column": row[done_col] if len(row) > done_col else "-"
+                })
 
         return jsonify({"status": "success", "data": matched_data})
 
