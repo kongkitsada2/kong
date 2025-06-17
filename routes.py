@@ -8,7 +8,7 @@ from logic.last_count import read_last_response_counts
 def register_routes(app):
     @app.route('/')
     def index():
-        return render_template("index6.html")
+        return render_template("index7.html")
 
     @app.route('/submit_qr', methods=['POST'])
     def submit_qr():
