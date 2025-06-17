@@ -396,12 +396,12 @@
           let html = `<h3>📅 ข้อมูลตรงกับวันที่วันนี้</h3>`;
 
           if (sheetData.length > 0) {
-            html += "<table><thead><tr><th>Description</th><th>วันที่</th><th>จำนวนสุ่ม QA:</th><th>จำนวนที่ทำแล้ว</th></tr></thead><tbody>";
+            html += "<table><thead><tr><th>Description</th><th>จำนวนสุ่ม QA:</th><th>คงเหลือ</th><th>จำนวนที่ทำแล้ว</th></tr></thead><tbody>";
             sheetData.forEach(row => {
               html += `<tr>
                 <td>${row.description || "-"}</td>
-                <td>${row.date_value || "-"}</td>
                 <td>${row.value_prev_column || "-"}</td>
+                <td>${row.date_value || "-"}</td>
                 <td>${row.value_next_column || "-"}</td>
               </tr>`;
             });
