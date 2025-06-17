@@ -31,7 +31,7 @@ def check_and_deduct_logic():
     try:
         sheet_url = "https://docs.google.com/spreadsheets/d/1bief199t8kf8vV9NoAUl_sakTTBTne5tKbXW8z65TcQ/edit"
         workbook = client.open_by_url(sheet_url)
-        main_sheet = workbook.worksheet("2025")
+        main_sheet = workbook.worksheet("รายงานผลQCรายวัน")
         response_sheets = ["ตอบกลับลูกสูบ", "ตอบกลับไร้น้ำมัน", "ตอบกลับโรตารี่"]
 
         # ดึง model จาก request
@@ -99,9 +99,13 @@ def check_and_deduct_logic():
 
         # อ่านข้อมูลหลัก
         main_data = main_sheet.get_all_values()
-        desc_col_index = colname_to_index("B")
+        '''desc_col_index = colname_to_index("B")
         date_cols = ["O", "S", "W", "AA"]
-        date_indexes = [colname_to_index(c) for c in date_cols]
+        date_indexes = [colname_to_index(c) for c in date_cols]'''
+        desc_col_index = colname_to_index("I")   # Description ใหม่
+        date_indexes = [colname_to_index("D")]   # วันที่
+        qa_col_index = colname_to_index("L")     # ไม่ได้ใช้ แต่ระบุไว้เผื่ออนาคต
+        done_col_index = colname_to_index("M")   # คอลัมน์ที่จะเขียนค่าจำนวนที่ทำแล้ว
 
         summary = []
 
@@ -143,11 +147,20 @@ def check_and_deduct_logic():
                 continue
 
             write_col = matched_date_col + 1
+            '''
             old_val = matched_row[write_col] if len(matched_row) > write_col else "0"
             try:
                 old_int = int(old_val) if old_val.strip().isdigit() else 0
                 new_val = old_int + count
                 main_sheet.update_cell(matched_row_index, write_col + 1, str(new_val))
+                summary.append(f"{model_key}: ✅ บวก +{count} → {new_val}")
+            except Exception as e:
+                summary.append(f"{model_key}: ❌ Error เขียนค่าลงชีต - {str(e)}")'''
+            old_val = matched_row[done_col_index] if len(matched_row) > done_col_index else "0"
+            try:
+                old_int = int(old_val) if old_val.strip().isdigit() else 0
+                new_val = old_int + count
+                main_sheet.update_cell(matched_row_index, done_col_index + 1, str(new_val))  # +1 เพราะใช้ index
                 summary.append(f"{model_key}: ✅ บวก +{count} → {new_val}")
             except Exception as e:
                 summary.append(f"{model_key}: ❌ Error เขียนค่าลงชีต - {str(e)}")
@@ -156,12 +169,6 @@ def check_and_deduct_logic():
             summary.append("⛔ ไม่มีข้อมูลใหม่ที่ตรงกับวันนี้")
 
         return jsonify({"status": "success", "message": "\n".join(summary)})
-
-    except Exception as e:
-        import traceback
-        traceback.print_exc()
-        return jsonify({"status": "error", "message": str(e)}), 500
-
 
     except Exception as e:
         import traceback
