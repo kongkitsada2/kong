@@ -1,9 +1,11 @@
-name: Auto Check Form Every Night
+name: Auto Check Form Multiple Times
 
 on:
   schedule:
-    - cron: '0 17 * * *'  # เวลาไทย 00:00 (17:00 UTC)
-  workflow_dispatch:      # ✅ ให้กดรันเองด้วยถ้าต้องการ
+    - cron: '0 5 * * *'    # เวลาไทย 12:00
+    - cron: '0 10 * * *'   # เวลาไทย 17:00
+    - cron: '50 16 * * *'  # เวลาไทย 23:50
+  workflow_dispatch:       # ให้กดรันเองด้วยถ้าต้องการ
 
 jobs:
   check-form:
