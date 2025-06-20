@@ -20,7 +20,10 @@ register_routes(app)
 
 @app.route('/<filename>')
 def serve_txt_from_root(filename):
-    return send_from_directory('.', filename)
+    if filename.endswith(".txt"):
+        return send_from_directory('.', filename)
+    else:
+        abort(404)  # ป้องกันการเข้าถึงไฟล์อื่น
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
