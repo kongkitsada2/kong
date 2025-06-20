@@ -1,11 +1,13 @@
-name: Sync Response Counts from Render
+name: 🔁 Auto Check Form + Sync Response Files
 
 permissions:
   contents: write
 
 on:
   schedule:
-    - cron: '5 6 * * *'  # เวลาไทย 13:05
+    - cron: '0 5 * * *'    # เวลาไทย 12:00
+    - cron: '0 10 * * *'   # เวลาไทย 17:00
+    - cron: '50 16 * * *'  # เวลาไทย 23:50
   workflow_dispatch:
 
 jobs:
@@ -13,19 +15,25 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repo
+      - name: 📦 Checkout repo
         uses: actions/checkout@v3
 
-      - name: Fetch response files from Render
+      - name: 🔁 Call API to update count (Render)
+        run: |
+          curl -X POST https://qcproject.onrender.com/check_and_deduct_new_form_data \
+          -H "Content-Type: application/json" \
+          -d '{}'
+
+      - name: 📥 Download updated count files
         run: |
           curl -O https://qcproject.onrender.com/static/last_response_count_ตอบกลับลูกสูบ.txt
           curl -O https://qcproject.onrender.com/static/last_response_count_ตอบกลับโรตารี่.txt
           curl -O https://qcproject.onrender.com/static/last_response_count_ตอบกลับไร้น้ำมัน.txt
 
-      - name: Commit and push updated response files
+      - name: ✅ Commit and push
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add last_response_count_*.txt
-          git commit -m "🔁 Sync response count files [auto]" || echo "No changes to commit"
+          git commit -m "🔁 Update count files from Render" || echo "No changes to commit"
           git push
