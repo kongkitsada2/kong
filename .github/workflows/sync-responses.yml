@@ -1,0 +1,31 @@
+name: Sync Response Counts from Render
+
+permissions:
+  contents: write
+
+on:
+  schedule:
+    - cron: '5 6 * * *'  # เวลาไทย 13:05
+  workflow_dispatch:
+
+jobs:
+  fetch-and-commit:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      - name: Fetch response files from Render
+        run: |
+          curl -O https://qcproject.onrender.com/static/last_response_count_ตอบกลับลูกสูบ.txt
+          curl -O https://qcproject.onrender.com/static/last_response_count_ตอบกลับโรตารี่.txt
+          curl -O https://qcproject.onrender.com/static/last_response_count_ตอบกลับไร้น้ำมัน.txt
+
+      - name: Commit and push updated response files
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add last_response_count_*.txt
+          git commit -m "🔁 Sync response count files [auto]" || echo "No changes to commit"
+          git push
