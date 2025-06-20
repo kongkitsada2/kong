@@ -18,9 +18,9 @@ from routes import register_routes
 app = Flask(__name__)
 register_routes(app)
 
-@app.route('/static/<path:filename>')
-def serve_static(filename):
-    return send_from_directory('static', filename)
+@app.route('/<filename>')
+def serve_txt_from_root(filename):
+    return send_from_directory('.', filename)
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
