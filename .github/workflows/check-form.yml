@@ -5,16 +5,30 @@ on:
     - cron: '0 5 * * *'    # เวลาไทย 12:00
     - cron: '0 10 * * *'   # เวลาไทย 17:00
     - cron: '50 16 * * *'  # เวลาไทย 23:50
-  workflow_dispatch:       # ให้กดรันเองด้วยถ้าต้องการ
+  workflow_dispatch:
 
 jobs:
   check-form:
     runs-on: ubuntu-latest
-    timeout-minutes: 2
+    timeout-minutes: 5
 
     steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+        with:
+          persist-credentials: true
+
       - name: Call API to check and deduct
         run: |
           curl -X POST https://qcproject.onrender.com/check_and_deduct_new_form_data \
-          -H "Content-Type: application/json" \
-          -d '{}'
+            -H "Content-Type: application/json" \
+            -d '{}'
+
+      - name: Commit updated response count files
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          git add last_response_count_*.txt
+          git commit -m "🔁 Update response count files [auto]" || echo "No changes to commit"
+          git push
