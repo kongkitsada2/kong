@@ -1,5 +1,8 @@
 name: Auto Check Form Multiple Times
 
+permissions:
+  contents: write
+
 on:
   schedule:
     - cron: '0 5 * * *'    # เวลาไทย 12:00
