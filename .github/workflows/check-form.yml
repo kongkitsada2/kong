@@ -32,6 +32,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
+          git status
           git add last_response_count_*.txt
           git commit -m "🔁 Update response count files [auto]" || echo "No changes to commit"
           git push
