@@ -26,9 +26,9 @@ def get_sheet_data():
 
         # ✅ ตั้งค่าคอลัมน์ที่ต้องใช้
         description_col = colname_to_index("I")  # Description
-        qa_col = colname_to_index("L")           # จำนวนสุ่ม QA:
-        done_col = colname_to_index("M")         # จำนวนที่ทำแล้ว
-        remain_col = colname_to_index("N")       # คงเหลือ
+        qa_col = colname_to_index("N")           # จำนวนสุ่ม QA:
+        done_col = colname_to_index("O")         # จำนวนที่ทำแล้ว
+        remain_col = colname_to_index("P")       # คงเหลือ
 
         matched_data = []
 
