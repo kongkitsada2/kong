@@ -2,8 +2,7 @@ import os
 from flask import jsonify
 
 def read_last_response_counts():
-    # ใช้ path แบบ relative จากตำแหน่งไฟล์ปัจจุบันไปยัง static/
-    folder_path = os.path.join(os.path.dirname(__file__), "static")
+    folder_path = os.path.join(os.path.dirname(__file__), "../static")  # หรือ "static" ถ้าอยู่ที่เดียวกัน
 
     filenames = {
         "last_response_count_ตอบกลับลูกสูบ.txt": "ปั๊มลมลูกสูบ",
@@ -13,9 +12,9 @@ def read_last_response_counts():
 
     results = {}
     for filename, display_name in filenames.items():
-        full_path = os.path.join(folder_path, filename)
-        if os.path.exists(full_path):
-            with open(full_path, "r", encoding="utf-8") as f:
+        path = os.path.join(folder_path, filename)
+        if os.path.exists(path):
+            with open(path, "r", encoding="utf-8") as f:
                 results[display_name] = f.read().strip()
         else:
             results[display_name] = "ไม่พบไฟล์"
