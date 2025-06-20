@@ -26,9 +26,9 @@ jobs:
 
       - name: 📥 Download updated count files
         run: |
-          curl -O https://qcproject.onrender.com/static/last_response_count_ตอบกลับลูกสูบ.txt
-          curl -O https://qcproject.onrender.com/static/last_response_count_ตอบกลับโรตารี่.txt
-          curl -O https://qcproject.onrender.com/static/last_response_count_ตอบกลับไร้น้ำมัน.txt
+          curl -O https://qcproject.onrender.com/last_response_count_ตอบกลับลูกสูบ.txt
+          curl -O https://qcproject.onrender.com/last_response_count_ตอบกลับโรตารี่.txt
+          curl -O https://qcproject.onrender.com/last_response_count_ตอบกลับไร้น้ำมัน.txt
 
       - name: ✅ Commit and push
         run: |
