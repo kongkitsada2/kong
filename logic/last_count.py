@@ -2,7 +2,8 @@ import os
 from flask import jsonify
 
 def read_last_response_counts():
-    folder_path = ""
+    '''folder_path = ""'''
+    folder_path = os.path.join(os.path.dirname(__file__), "static")
     filenames = {
         "last_response_count_ตอบกลับลูกสูบ.txt": "ปั๊มลมลูกสูบ",
         "last_response_count_ตอบกลับไร้น้ำมัน.txt": "ปั๊มลมไร้น้ำมัน",
