@@ -69,7 +69,8 @@ def check_and_deduct_logic():
             date_index = next((i for i, h in enumerate(headers) if "วันที่ตรวจ" in h), 1)
 
             # ไฟล์นับแยกตามชีต
-            counter_file = f"last_response_count_{sheet_name}.txt"
+            '''counter_file = f"last_response_count_{sheet_name}.txt"'''
+            counter_file = os.path.join("static", f"last_response_count_{sheet_name}.txt")
             last_count = 0
             if os.path.exists(counter_file):
                 with open(counter_file, "r") as f:
