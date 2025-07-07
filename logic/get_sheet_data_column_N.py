@@ -25,7 +25,7 @@ def get_sheet_data():
         rows = values[1:]
 
         # ✅ ตั้งค่าคอลัมน์ที่ต้องใช้
-        description_col = colname_to_index("I")  # Description
+        description_col = colname_to_index("K")  # Description
         qa_col = colname_to_index("N")           # จำนวนสุ่ม QA:
         done_col = colname_to_index("O")         # จำนวนที่ทำแล้ว
         remain_col = colname_to_index("P")       # คงเหลือ
