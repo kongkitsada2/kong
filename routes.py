@@ -29,3 +29,10 @@ def register_routes(app):
     @app.route('/show_last_counts')
     def show_last_counts():
         return jsonify(read_last_response_counts())
+
+    @app.route('/static/<path:filename>')
+    def serve_static_txt(filename):
+        if filename.endswith(".txt"):
+            return send_from_directory('static', filename)
+        else:
+            abort(404)
