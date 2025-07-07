@@ -103,7 +103,7 @@ def check_and_deduct_logic():
         '''desc_col_index = colname_to_index("B")
         date_cols = ["O", "S", "W", "AA"]
         date_indexes = [colname_to_index(c) for c in date_cols]'''
-        desc_col_index = colname_to_index("I")   # Description ใหม่
+        desc_col_index = colname_to_index("K")   # Description ใหม่
         date_indexes = [colname_to_index("D")]   # วันที่
         qa_col_index = colname_to_index("L")     # ไม่ได้ใช้ แต่ระบุไว้เผื่ออนาคต
         done_col_index = colname_to_index("M")   # คอลัมน์ที่จะเขียนค่าจำนวนที่ทำแล้ว
