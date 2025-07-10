@@ -1,31 +1,11 @@
-#แก้ google sheet ด้วย
 import re
-import pytz
 import os
-from datetime import datetime
 from flask import jsonify, request
 from collections import defaultdict
 from utils.gsheet import client
 
-def is_today_date(val, today_formats):
-    val = val.strip().split(" ")[0].strip()
-    for fmt in today_formats:
-        try:
-            if datetime.strptime(val, "%d/%m/%Y") == datetime.strptime(fmt, "%d/%m/%Y"):
-                return True
-        except:
-            continue
-    return False
-
 def normalize_model(text):
     return re.sub(r'[\s\-\(\)]', '', text.upper())
-
-def colname_to_index(colname):
-    colname = colname.upper()
-    index = 0
-    for char in colname:
-        index = index * 26 + (ord(char) - ord("A") + 1)
-    return index - 1
 
 def check_and_deduct_logic():
     try:
@@ -34,29 +14,19 @@ def check_and_deduct_logic():
         main_sheet = workbook.worksheet("รายงานผลQCรายวัน")
         response_sheets = ["ตอบกลับลูกสูบ", "ตอบกลับไร้น้ำมัน", "ตอบกลับโรตารี่"]
 
-        # ดึง model จาก request
+        # รับ model filter (optional)
         req_data = request.get_json()
         target_models = req_data.get("models")
         if target_models:
             if isinstance(target_models, str):
                 target_models = [target_models]
-            target_model_clean_set = set(normalize_model(m.strip().upper()) for m in target_models)
+            target_model_clean_set = set(normalize_model(m.strip()) for m in target_models)
         else:
-            target_model_clean_set = None  # หมายถึงไม่กรองด้วย model
+            target_model_clean_set = None
 
-        tz = pytz.timezone("Asia/Bangkok")
-        now = datetime.now(tz)
-        year = now.year - 543 if now.year > 2500 else now.year
-        d, m = now.day, now.month
-        today_formats = [
-            f"{d}/{m}/{year}", f"{d:02d}/{m}/{year}",
-            f"{d}/{m:02d}/{year}", f"{d:02d}/{m:02d}/{year}"
-        ]
-
-        headers_map = {}
+        # --- ดึง model ใหม่ที่ยังไม่ถูกนับ
         new_model_counts = defaultdict(int)
 
-        # วนลูปแต่ละชีต
         for sheet_name in response_sheets:
             sheet = workbook.worksheet(sheet_name)
             values = sheet.get_all_values()
@@ -65,11 +35,10 @@ def check_and_deduct_logic():
 
             headers = values[0]
             rows = values[1:]
-            model_index = next((i for i, h in enumerate(headers) if "model" in h.lower()), 6)
-            date_index = next((i for i, h in enumerate(headers) if "วันที่ตรวจ" in h), 1)
+            model_index = next((i for i, h in enumerate(headers) if "model" in h.lower()), None)
+            if model_index is None:
+                continue  # ข้ามชีตที่ไม่มีหัว column model
 
-            # ไฟล์นับแยกตามชีต
-            '''counter_file = f"last_response_count_{sheet_name}.txt"'''
             counter_file = os.path.join("static", f"last_response_count_{sheet_name}.txt")
             last_count = 0
             if os.path.exists(counter_file):
@@ -83,91 +52,54 @@ def check_and_deduct_logic():
             new_rows = rows[last_count:]
 
             for row in new_rows:
-                if len(row) > max(model_index, date_index):
-                    model_raw = row[model_index].strip().upper()
+                if len(row) > model_index:
+                    model_raw = row[model_index].strip()
                     model_clean = normalize_model(model_raw)
-                    date_val = row[date_index].strip()
-                    
-                    # ✅ เพิ่มตรงนี้เพื่อตรวจสอบข้อมูลที่ได้จาก Google Form
-                    #print(f"✅ เช็คจากชีต {sheet_name}: วันที่ = {date_val}, model = {model_raw}")
-
-                    if (target_model_clean_set is None or model_clean in target_model_clean_set) and date_val in today_formats:
+                    if target_model_clean_set is None or model_clean in target_model_clean_set:
                         new_model_counts[model_clean] += 1
 
-            # บันทึก count ใหม่ไว้
             with open(counter_file, "w") as f:
                 f.write(str(current_count))
 
-        # อ่านข้อมูลหลัก
+        # --- อ่านข้อมูลจากชีตหลัก
         main_data = main_sheet.get_all_values()
-        '''desc_col_index = colname_to_index("B")
-        date_cols = ["O", "S", "W", "AA"]
-        date_indexes = [colname_to_index(c) for c in date_cols]'''
-        desc_col_index = colname_to_index("K")   # Description ใหม่
-        date_indexes = [colname_to_index("D")]   # วันที่
-        qa_col_index = colname_to_index("L")     # ไม่ได้ใช้ แต่ระบุไว้เผื่ออนาคต
-        done_col_index = colname_to_index("M")   # คอลัมน์ที่จะเขียนค่าจำนวนที่ทำแล้ว
+        header_row = main_data[0]
+
+        model_col_index = next((i for i, h in enumerate(header_row) if "model" in h.lower()), None)
+        done_col_index = next((i for i, h in enumerate(header_row) if "จำนวนทำจริง" in h.lower()), None)
+
+        if model_col_index is None or done_col_index is None:
+            return jsonify({"status": "error", "message": "ไม่พบหัวคอลัมน์ 'MODEL' หรือ 'จำนวนทำจริง'"}), 400
 
         summary = []
 
         for model_key, count in new_model_counts.items():
             matched_row_index = None
-            matched_date_col = None
-            for i, row in enumerate(main_data[1:], start=2):
-                if len(row) > desc_col_index:
-                    desc_clean = normalize_model(row[desc_col_index].strip())
-                    if model_key in desc_clean:
-                        # ตรวจสอบว่า row นี้มีวันที่ตรงกับวันนี้หรือไม่
-                        for col_idx in date_indexes:
-                            if len(row) > col_idx:
-                                val = row[col_idx].strip()
-                                print(f"🔍 ตรวจแถว {i}: {val!r}")
-                                if is_today_date(val, today_formats):
-                                    matched_row_index = i
-                                    matched_date_col = col_idx
-                                    break
-                if matched_row_index:
-                    break
+
+            for i in range(len(main_data) - 1, 0, -1):  # ไล่จากล่างขึ้นบน ข้าม header
+                row = main_data[i]
+                if len(row) > model_col_index:
+                    desc_clean = normalize_model(row[model_col_index].strip())
+                    if model_key == desc_clean:
+                        matched_row_index = i + 1  # เพราะ Google Sheets ใช้ index เริ่มจาก 1
+                        break
 
             if not matched_row_index:
                 summary.append(f"{model_key}: ❌ ไม่พบ MODEL ในชีตหลัก")
                 continue
 
             matched_row = main_data[matched_row_index - 1]
-            matched_date_col = None
-            for col_idx in date_indexes:
-                if len(matched_row) > col_idx:
-                    val = matched_row[col_idx].strip()
-                    print(f"🔍 ตรวจแถว {i+1}: {val!r}")
-                    if is_today_date(val, today_formats):
-                        matched_date_col = col_idx
-                        break
-
-            if matched_date_col is None:
-                summary.append(f"{model_key}: ❌ ไม่พบวันที่ใน O/S/W/AA")
-                continue
-
-            write_col = matched_date_col + 1
-            '''
-            old_val = matched_row[write_col] if len(matched_row) > write_col else "0"
-            try:
-                old_int = int(old_val) if old_val.strip().isdigit() else 0
-                new_val = old_int + count
-                main_sheet.update_cell(matched_row_index, write_col + 1, str(new_val))
-                summary.append(f"{model_key}: ✅ บวก +{count} → {new_val}")
-            except Exception as e:
-                summary.append(f"{model_key}: ❌ Error เขียนค่าลงชีต - {str(e)}")'''
             old_val = matched_row[done_col_index] if len(matched_row) > done_col_index else "0"
             try:
                 old_int = int(old_val) if old_val.strip().isdigit() else 0
                 new_val = old_int + count
-                main_sheet.update_cell(matched_row_index, done_col_index + 1, str(new_val))  # +1 เพราะใช้ index
+                main_sheet.update_cell(matched_row_index, done_col_index + 1, str(new_val))
                 summary.append(f"{model_key}: ✅ บวก +{count} → {new_val}")
             except Exception as e:
                 summary.append(f"{model_key}: ❌ Error เขียนค่าลงชีต - {str(e)}")
 
         if not summary:
-            summary.append("⛔ ไม่มีข้อมูลใหม่ที่ตรงกับวันนี้")
+            summary.append("⛔ ไม่มีข้อมูลใหม่")
 
         return jsonify({"status": "success", "message": "\n".join(summary)})
 
