@@ -217,7 +217,7 @@
       // ✅ หากไม่มี model → ส่ง body ว่างไปเลย
       const bodyData = scannedModels.length > 0 ? { models: scannedModels } : {};
 
-      fetch("/check_and_deduct_new_form_data", {
+      fetch("/update_count_with_txt", {
         method: "POST",
         headers: {
           "Content-Type": "application/json"
@@ -396,7 +396,7 @@
           let html = `<h3>📅 ข้อมูลตรงกับวันที่วันนี้</h3>`;
 
           if (sheetData.length > 0) {
-            html += "<table><thead><tr><th>Description</th><th>จำนวนสุ่ม QA:</th><th>คงเหลือ</th><th>จำนวนที่ทำแล้ว</th></tr></thead><tbody>";
+            html += "<table><thead><tr><th>MODEL</th><th>จำนวนสุ่ม QA:</th><th>คงเหลือ</th><th>จำนวนที่ทำแล้ว</th></tr></thead><tbody>";
             sheetData.forEach(row => {
               html += `<tr>
                 <td>${row.description || "-"}</td>
