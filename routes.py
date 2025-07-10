@@ -23,10 +23,6 @@ def register_routes(app):
     @app.route('/update_count_with_txt', methods=['POST']) # ไว้ใช้เรียกคำสั่งไป index.html
     def check_deduct_route():
         return check_and_deduct_logic()
-
-    @app.route('/upload_image_ocr', methods=['POST']) # ไว้ใช้เรียกคำสั่งไป index.html
-    def upload_image_ocr():
-        return ocr_from_image(request)
     
     @app.route('/show_last_counts')
     def show_last_counts():
