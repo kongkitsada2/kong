@@ -1,102 +1,118 @@
-import re
 import os
+import re
 from flask import jsonify, request
 from collections import defaultdict
 from utils.gsheet import client
 
-def normalize_model(text):
+# ---------- helper ----------------------------------------------------------
+def normalize_model(text: str) -> str:
+    """ทำให้ชื่อ MODEL เป็นตัวพิมพ์ใหญ่-ติดกัน (ลบเว้นวรรค – () -)"""
     return re.sub(r'[\s\-\(\)]', '', text.upper())
 
+# ---------- main ------------------------------------------------------------
 def check_and_deduct_logic():
     try:
-        sheet_url = "https://docs.google.com/spreadsheets/d/1bief199t8kf8vV9NoAUl_sakTTBTne5tKbXW8z65TcQ/edit"
-        workbook = client.open_by_url(sheet_url)
-        main_sheet = workbook.worksheet("รายงานผลQCรายวัน")
+        # --- 1) เปิด Google Sheet ------------------------------------------------
+        sheet_url = (
+            "https://docs.google.com/spreadsheets/d/"
+            "1bief199t8kf8vV9NoAUl_sakTTBTne5tKbXW8z65TcQ/edit"
+        )
+        workbook     = client.open_by_url(sheet_url)
+        main_sheet   = workbook.worksheet("รายงานผลQCรายวัน")
         response_sheets = ["ตอบกลับลูกสูบ", "ตอบกลับไร้น้ำมัน", "ตอบกลับโรตารี่"]
 
-        # รับ model filter (optional)
-        req_data = request.get_json()
-        target_models = req_data.get("models")
-        if target_models:
-            if isinstance(target_models, str):
-                target_models = [target_models]
-            target_model_clean_set = set(normalize_model(m.strip()) for m in target_models)
-        else:
-            target_model_clean_set = None
+        # --- 2) รับตัวกรอง MODEL (ถ้ามี) -----------------------------------------
+        body = request.get_json(silent=True) or {}
+        target_models = body.get("models")
+        model_filter = (
+            {normalize_model(m) for m in (target_models if isinstance(target_models, list) else [target_models])}
+            if target_models else None
+        )
 
-        # --- ดึง model ใหม่ที่ยังไม่ถูกนับ
+        # --- 3) เก็บ count MODEL ใหม่จากทุกชีตตอบกลับ --------------------------
         new_model_counts = defaultdict(int)
 
         for sheet_name in response_sheets:
-            sheet = workbook.worksheet(sheet_name)
-            values = sheet.get_all_values()
-            if not values or len(values) <= 1:
+            ws      = workbook.worksheet(sheet_name)
+            values  = ws.get_all_values()
+            if len(values) <= 1:
                 continue
 
-            headers = values[0]
-            rows = values[1:]
-            model_index = next((i for i, h in enumerate(headers) if "model" in h.lower()), None)
-            if model_index is None:
-                continue  # ข้ามชีตที่ไม่มีหัว column model
+            headers     = values[0]
+            rows        = values[1:]
+            model_idx   = next((i for i, h in enumerate(headers) if "model" in h.lower()), None)
+            if model_idx is None:
+                continue
 
-            counter_file = os.path.join("static", f"last_response_count_{sheet_name}.txt")
-            last_count = 0
-            if os.path.exists(counter_file):
-                with open(counter_file, "r") as f:
-                    try:
-                        last_count = int(f.read().strip())
-                    except:
-                        pass
+            counter_f = os.path.join("static", f"last_response_count_{sheet_name}.txt")
+            last_cnt  = 0
+            if os.path.exists(counter_f):
+                try:
+                    last_cnt = int(open(counter_f).read().strip())
+                except ValueError:
+                    pass
 
-            current_count = len(rows)
-            new_rows = rows[last_count:]
+            for row in rows[last_cnt:]:
+                if len(row) > model_idx:
+                    mod_clean = normalize_model(row[model_idx])
+                    if model_filter is None or mod_clean in model_filter:
+                        new_model_counts[mod_clean] += 1
 
-            for row in new_rows:
-                if len(row) > model_index:
-                    model_raw = row[model_index].strip()
-                    model_clean = normalize_model(model_raw)
-                    if target_model_clean_set is None or model_clean in target_model_clean_set:
-                        new_model_counts[model_clean] += 1
+            # อัปเดตไฟล์ counter
+            with open(counter_f, "w") as f:
+                f.write(str(len(rows)))
 
-            with open(counter_file, "w") as f:
-                f.write(str(current_count))
+        # --- 4) เตรียม index ของคอลัมน์ในชีตหลัก ------------------------------
+        main_data  = main_sheet.get_all_values()
+        headers    = main_data[0]
 
-        # --- อ่านข้อมูลจากชีตหลัก
-        main_data = main_sheet.get_all_values()
-        header_row = main_data[0]
+        model_col  = next((i for i, h in enumerate(headers) if "model"         in h.lower()), None)
+        done_col   = next((i for i, h in enumerate(headers) if "จำนวนทำจริง"    in h.lower()), None)
+        remain_col = next((i for i, h in enumerate(headers) if "คงเหลือ"        in h.lower()), None)
 
-        model_col_index = next((i for i, h in enumerate(header_row) if "model" in h.lower()), None)
-        done_col_index = next((i for i, h in enumerate(header_row) if "จำนวนทำจริง" in h.lower()), None)
+        if None in (model_col, done_col, remain_col):
+            return jsonify({"status": "error",
+                            "message": "ไม่พบหัวคอลัมน์ MODEL / จำนวนทำจริง / คงเหลือ"}), 400
 
-        if model_col_index is None or done_col_index is None:
-            return jsonify({"status": "error", "message": "ไม่พบหัวคอลัมน์ 'MODEL' หรือ 'จำนวนทำจริง'"}), 400
-
+        # --- 5) บวกค่าลง “จำนวนทำจริง” ถ้า ‘คงเหลือ’ > 0 ------------------------
         summary = []
 
-        for model_key, count in new_model_counts.items():
-            matched_row_index = None
+        for mod_key, add_cnt in new_model_counts.items():
+            row_to_update = None
 
-            for i in range(len(main_data) - 1, 0, -1):  # ไล่จากล่างขึ้นบน ข้าม header
-                row = main_data[i]
-                if len(row) > model_col_index:
-                    desc_clean = normalize_model(row[model_col_index].strip())
-                    if model_key == desc_clean:
-                        matched_row_index = i + 1  # เพราะ Google Sheets ใช้ index เริ่มจาก 1
+            # ไล่จากล่างขึ้นบน
+            for r in range(len(main_data) - 1, 0, -1):
+                mod_in_row = normalize_model(main_data[r][model_col]) if len(main_data[r]) > model_col else ""
+                if mod_in_row == mod_key:
+                    # เช็กคงเหลือ
+                    remain_val = main_data[r][remain_col] if len(main_data[r]) > remain_col else "0"
+                    try:
+                        remain_int = int(remain_val.strip())
+                    except ValueError:
+                        remain_int = 0
+
+                    if remain_int <= 0:
+                        summary.append(f"{mod_key}: ⚠️ คงเหลือ {remain_int} ไม่บวกเพิ่ม")
                         break
 
-            if not matched_row_index:
-                summary.append(f"{model_key}: ❌ ไม่พบ MODEL ในชีตหลัก")
+                    row_to_update = r
+                    break
+
+            if row_to_update is None:
+                summary.append(f"{mod_key}: ❌ ไม่พบ MODEL ในชีตหลัก")
                 continue
 
-            matched_row = main_data[matched_row_index - 1]
-            old_val = matched_row[done_col_index] if len(matched_row) > done_col_index else "0"
+            # ค่าปัจจุบัน
+            done_val = main_data[row_to_update][done_col] if len(main_data[row_to_update]) > done_col else "0"
             try:
-                old_int = int(old_val) if old_val.strip().isdigit() else 0
-                new_val = old_int + count
-                main_sheet.update_cell(matched_row_index, done_col_index + 1, str(new_val))
-                summary.append(f"{model_key}: ✅ บวก +{count} → {new_val}")
-            except Exception as e:
-                summary.append(f"{model_key}: ❌ Error เขียนค่าลงชีต - {str(e)}")
+                done_int = int(done_val.strip())
+            except ValueError:
+                done_int = 0
+
+            new_val = done_int + add_cnt
+            # Google Sheet index เริ่ม 1
+            main_sheet.update_cell(row_to_update + 1, done_col + 1, str(new_val))
+            summary.append(f"{mod_key}: ✅ บวก +{add_cnt} → {new_val}")
 
         if not summary:
             summary.append("⛔ ไม่มีข้อมูลใหม่")
